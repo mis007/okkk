@@ -17,7 +17,7 @@ export class GeminiLiveService {
   private stream: MediaStream | null = null;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    // ai will be initialized in connect() to ensure fresh API key
   }
 
   async connect(
@@ -32,6 +32,9 @@ export class GeminiLiveService {
       callbacks.onError("Secure context required for microphone access.");
       return;
     }
+
+    // Fix: Create a new GoogleGenAI instance right before making an API call to ensure it always uses the most up-to-date API key.
+    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     this.audioContextOut = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     this.audioContextIn = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -57,6 +60,7 @@ export class GeminiLiveService {
             for (let i = 0; i < inputData.length; i++) sum += inputData[i] * inputData[i];
             callbacks.onVolume(Math.sqrt(sum / inputData.length));
             const pcmBlob = createPcmBlob(inputData);
+            // Fix: Solely rely on sessionPromise resolves and then call `session.sendRealtimeInput` as per guidelines.
             sessionPromise.then((session: any) => session.sendRealtimeInput({ media: pcmBlob }));
           };
           source.connect(scriptProcessor);
@@ -72,6 +76,8 @@ export class GeminiLiveService {
             const source = this.audioContextOut.createBufferSource();
             source.buffer = audioBuffer;
             source.connect(this.audioContextOut.destination);
+            
+            // Fix: Scheduling each new audio chunk to start at nextStartTime ensures smooth, gapless playback.
             source.start(this.nextStartTime);
             this.nextStartTime += audioBuffer.duration;
             this.sources.add(source);
@@ -84,6 +90,7 @@ export class GeminiLiveService {
           }
         },
         onerror: (e: any) => callbacks.onError(e),
+        onclose: () => console.log('Session closed'),
       },
       config: {
         responseModalities: [Modality.AUDIO],

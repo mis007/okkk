@@ -4,35 +4,60 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>即插即用语音插件演示</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
-  {
-    "imports": {
-      "react/": "https://esm.sh/react@^19.2.3/",
-      "react": "https://esm.sh/react@^19.2.3",
-      "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-      "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
-      "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
+  <title>Gemini 语音助手 - 大陆深度优化版</title>
+  <!-- 使用大陆访问更稳的 CDN -->
+  <link href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <style>
+    /* UI 兼容性补丁：解决某些环境下 Tailwind 样式不生效导致的“透明”问题 */
+    :root {
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
     }
+    .bg-slate-50 { background-color: var(--slate-50); }
+    .bg-slate-100 { background-color: var(--slate-100); }
+    .bg-slate-900 { background-color: var(--slate-900); }
+    .text-slate-600 { color: var(--slate-600); }
+    .text-slate-800 { color: var(--slate-800); }
+    .text-slate-900 { color: var(--slate-900); }
+    .border-slate-100 { border-color: var(--slate-100); }
+    .border-slate-200 { border-color: var(--slate-200); }
+    
+    @keyframes pulse { 50% { opacity: .5; } }
+    .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    .backdrop-blur-md { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "@google/genai": "https://esm.sh/@google/genai@1.34.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
-  </script>
+}
+</script>
   <script>
-    /**
-     * 【给非技术人员的说明】
-     * 1. 如果你用大陆专线：这里的 API_KEY 请填胜算云给你的 Key。
-     * 2. 如果你用全球线路：这里的 API_KEY 请填 Google AI Studio 申请的 Key。
-     * 3. 生产环境下，请通过服务器环境变量注入，不要直接写在这里以防泄露。
-     */
     window.process = {
       env: {
         API_KEY: "GoVWdyVS93_9_fN4kkUTVeQKJNZwu_hzfngNuq7Nqs2Sw_CSrPDL04lewmwJN1jqPUDmZIbaAx-JnbUHZvUvpANlJC3Q0HoEAg6e2w" 
       }
     };
+    window.isSecureContext || console.warn("警告：非 HTTPS 环境可能导致麦克风无法开启。");
   </script>
 </head>
-<body class="bg-slate-50">
-  <!-- 插件将自动在此渲染 -->
+<body class="bg-gray-50">
+  <div id="root"></div>
   <script type="module" src="./index.tsx"></script>
 </body>
 </html>

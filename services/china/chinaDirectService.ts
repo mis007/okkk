@@ -4,8 +4,7 @@ import { decode, decodeAudioData, createPcmBlob } from '../../utils/audioUtils';
 import { DEFAULT_SYSTEM_INSTRUCTION } from '../../types';
 
 /**
- * 【大陆物理专线版】
- * 专门针对中国大陆环境优化，使用胜算云路由中转。
+ * 大陆专线服务 - 专为中国大陆网络优化
  */
 export class ChinaDirectService {
   private ai: any;
@@ -16,16 +15,11 @@ export class ChinaDirectService {
   private sources: Set<AudioBufferSourceNode> = new Set();
   private stream: MediaStream | null = null;
 
-  constructor() {
-    this.ai = new GoogleGenAI({ 
-      apiKey: process.env.API_KEY || '',
-      // 强制指向胜算云路由
-      baseUrl: 'https://router.shengsuanyun.com' 
-    });
-  }
+  constructor() {}
 
   async connect(
     callbacks: {
+      onReady?: () => void;
       onMessage: (text: string, isUser: boolean) => void;
       onVolume: (volume: number) => void;
       onError: (err: any) => void;
@@ -33,17 +27,22 @@ export class ChinaDirectService {
     systemInstruction: string = DEFAULT_SYSTEM_INSTRUCTION.CHINA_MAINLAND
   ) {
     if (!window.isSecureContext) {
-      callbacks.onError("浏览器安全策略：必须在 HTTPS 环境下才能启动麦克风。");
+      callbacks.onError("安全限制：语音功能必须在 HTTPS 环境下运行。");
       return;
     }
 
-    this.audioContextOut = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-    this.audioContextIn = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-    
+    // 使用胜算云提供的专线网关绕过大陆网络封锁
+    this.ai = new GoogleGenAI({ 
+      apiKey: process.env.API_KEY,
+      baseUrl: 'https://router.shengsuanyun.com' 
+    } as any);
+
     try {
+      this.audioContextOut = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      this.audioContextIn = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
-      callbacks.onError("无法调用麦克风，请检查浏览器权限设置或是否开启了 HTTPS。");
+      callbacks.onError("无法获取麦克风，请确保已授予权限。");
       return;
     }
 
@@ -52,17 +51,18 @@ export class ChinaDirectService {
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks: {
           onopen: () => {
-            console.log("[China Direct] 隧道建立成功，实时语音已激活。");
+            console.log("[China Direct] Connection opened");
+            // 触发就绪回调
+            if (callbacks.onReady) callbacks.onReady();
+
             if (!this.stream || !this.audioContextIn) return;
             const source = this.audioContextIn.createMediaStreamSource(this.stream);
             const scriptProcessor = this.audioContextIn.createScriptProcessor(4096, 1, 1);
-            
             scriptProcessor.onaudioprocess = (event) => {
               const inputData = event.inputBuffer.getChannelData(0);
               let sum = 0;
               for (let i = 0; i < inputData.length; i++) sum += inputData[i] * inputData[i];
               callbacks.onVolume(Math.sqrt(sum / inputData.length));
-              
               const pcmBlob = createPcmBlob(inputData);
               sessionPromise.then((session: any) => session.sendRealtimeInput({ media: pcmBlob }));
             };
@@ -85,7 +85,6 @@ export class ChinaDirectService {
               this.sources.add(source);
               source.onended = () => this.sources.delete(source);
             }
-
             if (message.serverContent?.interrupted) {
               this.sources.forEach(s => s.stop());
               this.sources.clear();
@@ -93,9 +92,9 @@ export class ChinaDirectService {
             }
           },
           onerror: (e: any) => {
-            console.error("[专线异常]", e);
-            callbacks.onError("连接不稳定或 Key 无效，请检查胜算云后台。");
-          },
+            console.error("[专线连接失败]", e);
+            callbacks.onError("大陆专线握手失败。请检查 Key 是否有效或尝试刷新。");
+          }
         },
         config: {
           responseModalities: [Modality.AUDIO],
@@ -106,7 +105,7 @@ export class ChinaDirectService {
       });
       this.session = await sessionPromise;
     } catch (err) {
-      callbacks.onError("初始化连接失败：" + (err as Error).message);
+      callbacks.onError("初始化隧道失败：" + (err as Error).message);
     }
   }
 
