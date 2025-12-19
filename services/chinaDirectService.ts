@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { decode, decodeAudioData, createPcmBlob } from '../utils/audioUtils';
+import { DEFAULT_SYSTEM_INSTRUCTION } from '../types';
 
 /**
  * CHINA MAINLAND DEDICATED SERVICE
@@ -18,11 +19,14 @@ export class ChinaDirectService {
     this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   }
 
-  async connect(callbacks: {
-    onMessage: (text: string, isUser: boolean) => void;
-    onVolume: (volume: number) => void;
-    onError: (err: any) => void;
-  }) {
+  async connect(
+    callbacks: {
+      onMessage: (text: string, isUser: boolean) => void;
+      onVolume: (volume: number) => void;
+      onError: (err: any) => void;
+    },
+    systemInstruction: string = DEFAULT_SYSTEM_INSTRUCTION.CHINA_MAINLAND
+  ) {
     console.log("[China Direct] Establishing dedicated line connection...");
     
     this.audioContextOut = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -98,7 +102,7 @@ export class ChinaDirectService {
         responseModalities: [Modality.AUDIO],
         outputAudioTranscription: {},
         inputAudioTranscription: {},
-        systemInstruction: "你是一个高效、快速的语音助手。针对中国大陆用户提供流畅的服务。请使用中文回答。",
+        systemInstruction: systemInstruction,
       }
     });
 

@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 import { decode, decodeAudioData, createPcmBlob } from '../utils/audioUtils';
+import { DEFAULT_SYSTEM_INSTRUCTION } from '../types';
 
 export class GeminiLiveService {
   private ai: any;
@@ -15,11 +16,14 @@ export class GeminiLiveService {
     this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   }
 
-  async connect(callbacks: {
-    onMessage: (text: string, isUser: boolean) => void;
-    onVolume: (volume: number) => void;
-    onError: (err: any) => void;
-  }) {
+  async connect(
+    callbacks: {
+      onMessage: (text: string, isUser: boolean) => void;
+      onVolume: (volume: number) => void;
+      onError: (err: any) => void;
+    },
+    systemInstruction: string = DEFAULT_SYSTEM_INSTRUCTION.GLOBAL
+  ) {
     this.audioContextOut = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     this.audioContextIn = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
     
@@ -97,7 +101,7 @@ export class GeminiLiveService {
         responseModalities: [Modality.AUDIO],
         outputAudioTranscription: {},
         inputAudioTranscription: {},
-        systemInstruction: "You are a helpful and fast voice assistant. Keep responses brief for conversational speed.",
+        systemInstruction: systemInstruction,
       }
     });
 
